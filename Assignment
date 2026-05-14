@@ -1,0 +1,92 @@
+import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+void main() async {
+ 
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Firebase initialization
+  await Firebase.initializeApp();
+  
+  runApp(const StudentManagerApp());
+}
+
+class StudentManagerApp extends StatelessWidget {
+  const StudentManagerApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'Student Database',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+        useMaterial3: true,
+      ),
+      home: const StudentListScreen(),
+    );
+  }
+}
+
+class StudentListScreen extends StatelessWidget {
+  const StudentListScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Student Records (Firestore)'),
+        centerTitle: true,
+        backgroundColor: Colors.blueAccent,
+        foregroundColor: Colors.white,
+      ),
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance.collection('students').snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return const Center(child: Text('Error: Could not load data'));
+          }
+
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return const Center(child: Text('No student records found.'));
+          }
+
+          return ListView.separated(
+            padding: const EdgeInsets.all(12),
+            itemCount: snapshot.data!.docs.length,
+            separatorBuilder: (context, index) => const SizedBox(height: 10),
+            itemBuilder: (context, index) {
+              var doc = snapshot.data!.docs[index];
+              Map<String, dynamic> student = doc.data() as Map<String, dynamic>;
+
+              return Card(
+                elevation: 3,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                child: ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: Colors.blueAccent,
+                    child: Text(
+                      student['rollNumber']?.toString() ?? '0',
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  title: Text(
+                    student['name'] ?? 'Unknown',
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: Text('Course: ${student['course'] ?? "N/A"}'),
+                  trailing: const Icon(Icons.school, color: Colors.blueAccent),
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+}
